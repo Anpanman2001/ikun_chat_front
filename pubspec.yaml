@@ -1,0 +1,25 @@
+name: chatfront
+description: "Chat App - Flutter 聊天客户端"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.9.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  flutter_chat_ui: ^1.6.15
+  flutter_chat_types: ^3.6.2
+  socket_io_client: ^3.0.2
+  http: ^1.2.2
+  uuid: ^4.5.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
