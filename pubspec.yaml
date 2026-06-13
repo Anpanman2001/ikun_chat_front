@@ -1,5 +1,5 @@
 name: chatfront
-description: "Chat App - Flutter 聊天客户端"
+description: "ikun 真爱粉专属，黑子勿进"
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -16,6 +16,8 @@ dependencies:
   http: ^1.2.2
   uuid: ^4.5.1
   image_picker: ^1.1.2
+  shared_preferences: ^2.3.4
+  flutter_launcher_icons: ^0.14.1
 
 dev_dependencies:
   flutter_test:
@@ -24,3 +26,8 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/ikunapp.png"

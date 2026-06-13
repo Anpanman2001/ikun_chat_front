@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
 import 'package:uuid/uuid.dart';
 import '../services/chat_service.dart';
+import '../services/auth_service.dart';
 
 class ChatScreen extends StatefulWidget {
   final String userId;
@@ -24,7 +25,7 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   final List<types.Message> _messages = [];
-  late final types.User _currentUser;
+  late types.User _currentUser;
   late io.Socket _socket;
   bool _initialized = false;
   bool _connected = false;
@@ -38,8 +39,20 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void initState() {
     super.initState();
-    _currentUser = types.User(id: widget.userId, firstName: widget.userName);
+    _currentUser = _buildCurrentUser();
     _init();
+  }
+
+  types.User _buildCurrentUser() {
+    final nickname = AuthService.nickname ?? widget.userName;
+    final avatar = AuthService.avatarUrl;
+    return types.User(
+      id: widget.userId,
+      firstName: nickname,
+      imageUrl: avatar != null && avatar.isNotEmpty
+          ? (avatar.startsWith('/') ? '${ChatService.baseUrl}$avatar' : avatar)
+          : null,
+    );
   }
 
   Future<void> _init() async {
@@ -74,12 +87,11 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-  // ---- Socket.io（Edge/Web 可用，Android adb reverse 下可能超时） ----
+  // ---- Socket.io ----
   void _connectSocket() {
     _socket = io.io(ChatService.wsUrl);
 
     _socket.onConnect((_) {
-      debugPrint('Socket 已连接, id=${_socket.id}');
       setState(() => _connected = true);
     });
 
@@ -97,12 +109,11 @@ class _ChatScreenState extends State<ChatScreen> {
     });
 
     _socket.onReconnect((_) {
-      debugPrint('Socket 已重连');
       _pollLatest();
     });
   }
 
-  // ---- HTTP 轮询（Socket 不可用时的备选方案） ----
+  // ---- HTTP 轮询 ----
   void _startPolling() {
     _pollTimer = Timer.periodic(const Duration(seconds: 2), (_) => _pollLatest());
   }
@@ -122,12 +133,9 @@ class _ChatScreenState extends State<ChatScreen> {
       if (_errorMessage != null && _messages.isNotEmpty) {
         setState(() => _errorMessage = null);
       }
-    } catch (_) {
-      // 轮询失败静默忽略，下次重试
-    }
+    } catch (_) {}
   }
 
-  // ---- 公共消息处理 ----
   void _addIncomingMessage(dynamic data) {
     final json = Map<String, dynamic>.from(data);
     final serverId = json['id'].toString();
@@ -142,14 +150,21 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   types.Message _parseIncomingMessage(Map<String, dynamic> json, String id) {
-    final author =
-        types.User(id: json['user_id'], firstName: json['user_name']);
+    final nickname = json['sender_nickname'] ?? json['user_name'] ?? '';
+    var avatarUrl = json['sender_avatar'] as String?;
+    if (avatarUrl != null && avatarUrl.startsWith('/')) {
+      avatarUrl = '${ChatService.baseUrl}$avatarUrl';
+    }
+    final author = types.User(
+      id: json['user_id'] ?? '',
+      firstName: nickname,
+      imageUrl: avatarUrl,
+    );
     final createdAt =
         DateTime.parse(json['created_at']).millisecondsSinceEpoch;
     final rawImageUrl = json['image_url'] as String?;
 
     if (rawImageUrl != null && rawImageUrl.isNotEmpty) {
-      // 相对路径转绝对 URL
       final fullUrl = rawImageUrl.startsWith('/')
           ? '${ChatService.baseUrl}$rawImageUrl'
           : rawImageUrl;
@@ -188,11 +203,7 @@ class _ChatScreenState extends State<ChatScreen> {
       _sortMessages();
     });
 
-    ChatService.sendMessage(
-      text: text,
-      userId: widget.userId,
-      userName: widget.userName,
-    ).then((serverMsg) {
+    ChatService.sendMessage(text: text).then((serverMsg) {
       setState(() {
         final idx = _messages.indexWhere((m) => m.id == tempId);
         if (idx != -1) {
@@ -234,7 +245,6 @@ class _ChatScreenState extends State<ChatScreen> {
     final file = File(pickedFile.path);
     final fileName = pickedFile.name;
 
-    // 先创建本地预览消息
     final tempId = _uuid.v4();
     final localMsg = types.ImageMessage(
       author: _currentUser,
@@ -249,19 +259,13 @@ class _ChatScreenState extends State<ChatScreen> {
       _sortMessages();
     });
 
-    // 上传图片
     setState(() => _isUploading = true);
 
     try {
       final uploadResult = await ChatService.uploadImage(pickedFile.path);
       final imageUrl = uploadResult['image_url'] as String;
 
-      // 发送图片消息到服务器
-      final serverMsg = await ChatService.sendMessage(
-        imageUrl: imageUrl,
-        userId: widget.userId,
-        userName: widget.userName,
-      );
+      final serverMsg = await ChatService.sendMessage(imageUrl: imageUrl);
 
       setState(() {
         final idx = _messages.indexWhere((m) => m.id == tempId);
