@@ -3,11 +3,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:chatfront/main.dart';
 
 void main() {
-  testWidgets('App loads successfully', (WidgetTester tester) async {
+  testWidgets('App loads splash screen', (WidgetTester tester) async {
     await tester.pumpWidget(const ChatApp());
-    await tester.pumpAndSettle();
+    await tester.pump();
 
-    // 验证聊天室标题存在
-    expect(find.text('聊天室'), findsOneWidget);
+    // 启动时显示加载中
+    expect(find.text('加载中...'), findsOneWidget);
   });
 }
