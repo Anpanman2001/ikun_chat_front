@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
 import '../config.dart';
 import '../models/user_model.dart';
+import '../models/game_score.dart';
 import 'auth_service.dart';
 
 class ChatService {
@@ -243,5 +244,55 @@ class ChatService {
       }
     }
     throw Exception('修改头像失败');
+  }
+
+  // ---- 游戏 API ----
+
+  /// 提交游戏分数
+  static Future<void> submitScore(int score) async {
+    final response = await http
+        .post(
+          Uri.parse('$baseUrl/api/game/score'),
+          headers: {
+            ..._headers,
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode({'score': score}),
+        )
+        .timeout(_timeout);
+    if (response.statusCode == 201) return;
+    final body = jsonDecode(response.body);
+    throw Exception(body['error'] ?? '提交分数失败');
+  }
+
+  /// 获取排行榜
+  static Future<List<GameScore>> getLeaderboard() async {
+    final response = await http
+        .get(
+          Uri.parse('$baseUrl/api/game/leaderboard'),
+          headers: _headers,
+        )
+        .timeout(_timeout);
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+      return data
+          .map((json) => GameScore.fromJson(Map<String, dynamic>.from(json)))
+          .toList();
+    }
+    throw Exception('获取排行榜失败');
+  }
+
+  /// 获取我的排名
+  static Future<Map<String, dynamic>> getMyRank() async {
+    final response = await http
+        .get(
+          Uri.parse('$baseUrl/api/game/my-rank'),
+          headers: _headers,
+        )
+        .timeout(_timeout);
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    }
+    throw Exception('获取排名失败');
   }
 }

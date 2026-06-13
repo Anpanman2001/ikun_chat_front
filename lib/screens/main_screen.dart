@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'chat_screen.dart';
+import 'game_screen.dart';
 import 'profile_screen.dart';
 
 class MainScreen extends StatefulWidget {
@@ -26,6 +27,7 @@ class _MainScreenState extends State<MainScreen> {
     super.initState();
     _pages = [
       ChatScreen(userId: widget.userId, userName: widget.userName),
+      const GameScreen(),
       ProfileScreen(userName: widget.userName),
     ];
   }
@@ -49,9 +51,14 @@ class _MainScreenState extends State<MainScreen> {
             label: '聊天',
           ),
           NavigationDestination(
+            icon: Icon(Icons.sports_esports_outlined),
+            selectedIcon: Icon(Icons.sports_esports),
+            label: '游戏',
+          ),
+          NavigationDestination(
             icon: Icon(Icons.person_outline),
             selectedIcon: Icon(Icons.person),
-            label: '主页',
+            label: '我的',
           ),
         ],
       ),
