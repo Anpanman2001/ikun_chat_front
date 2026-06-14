@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_chat_ui/flutter_chat_ui.dart';
 import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
+import 'package:forui/forui.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
 import 'package:uuid/uuid.dart';
@@ -51,7 +52,9 @@ class _ChatScreenState extends State<ChatScreen> {
       id: widget.userId,
       firstName: nickname,
       imageUrl: avatar != null && avatar.isNotEmpty
-          ? (avatar.startsWith('/') ? '${ChatService.baseUrl}$avatar' : avatar)
+          ? (avatar.startsWith('/')
+              ? '${ChatService.baseUrl}$avatar'
+              : avatar)
           : null,
     );
   }
@@ -116,7 +119,8 @@ class _ChatScreenState extends State<ChatScreen> {
 
   // ---- HTTP 轮询 ----
   void _startPolling() {
-    _pollTimer = Timer.periodic(const Duration(seconds: 2), (_) => _pollLatest());
+    _pollTimer =
+        Timer.periodic(const Duration(seconds: 2), (_) => _pollLatest());
   }
 
   Future<void> _pollLatest() async {
@@ -223,8 +227,10 @@ class _ChatScreenState extends State<ChatScreen> {
         }
       });
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('发送失败，请重试'), duration: Duration(seconds: 2)),
+        showFToast(
+          context: context,
+          variant: FToastVariant.destructive,
+          title: const Text('发送失败，请重试'),
         );
       }
     });
@@ -286,8 +292,10 @@ class _ChatScreenState extends State<ChatScreen> {
         }
       });
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('图片发送失败，请重试'), duration: Duration(seconds: 2)),
+        showFToast(
+          context: context,
+          variant: FToastVariant.destructive,
+          title: const Text('图片发送失败，请重试'),
         );
       }
     } finally {
@@ -304,44 +312,49 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = FTheme.of(context);
+
     if (!_initialized) {
-      return Scaffold(
-        body: LottieHelper.chatLoading(),
+      return FScaffold(
+        child: LottieHelper.chatLoading(),
       );
     }
 
-    return Scaffold(
-      appBar: AppBar(
+    return FScaffold(
+      header: FHeader.nested(
         title: const Text('聊天室'),
-        centerTitle: true,
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: Icon(
-              Icons.circle,
+        titleAlignment: Alignment.center,
+        suffixes: [
+          FHeaderAction(
+            icon: Icon(
+              FIcons.circle,
               size: 12,
               color: _connected ? Colors.green : Colors.orange,
             ),
+            onPress: () {},
           ),
         ],
       ),
-      body: _errorMessage != null && _messages.isEmpty
+      child: _errorMessage != null && _messages.isEmpty
           ? Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.cloud_off, size: 64, color: Colors.grey),
+                  Icon(FIcons.cloudOff,
+                      size: 64, color: theme.colors.mutedForeground),
                   const SizedBox(height: 16),
-                  Text(_errorMessage!, style: const TextStyle(color: Colors.grey)),
+                  Text(_errorMessage!,
+                      style: TextStyle(
+                          color: theme.colors.mutedForeground)),
                   const SizedBox(height: 16),
-                  ElevatedButton.icon(
-                    onPressed: () {
+                  FButton(
+                    onPress: () {
                       setState(() => _errorMessage = null);
                       _loadMessages();
                       if (!_socket.connected) _socket.connect();
                     },
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('重试'),
+                    prefix: const Icon(FIcons.refreshCw),
+                    child: const Text('重试'),
                   ),
                 ],
               ),

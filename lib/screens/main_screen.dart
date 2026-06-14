@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:forui/forui.dart';
 import 'chat_screen.dart';
 import 'game_screen.dart';
 import 'profile_screen.dart';
@@ -34,33 +35,30 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: IndexedStack(
+    return FScaffold(
+      footer: FBottomNavigationBar(
         index: _currentIndex,
-        children: _pages,
-      ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: (index) {
+        onChange: (index) {
           setState(() => _currentIndex = index);
         },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.chat_bubble_outline),
-            selectedIcon: Icon(Icons.chat_bubble),
-            label: '聊天',
+        children: const [
+          FBottomNavigationBarItem(
+            icon: Icon(FIcons.messagesSquare),
+            label: Text('聊天'),
           ),
-          NavigationDestination(
-            icon: Icon(Icons.sports_esports_outlined),
-            selectedIcon: Icon(Icons.sports_esports),
-            label: '游戏',
+          FBottomNavigationBarItem(
+            icon: Icon(FIcons.gamepad2),
+            label: Text('游戏'),
           ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
-            label: '我的',
+          FBottomNavigationBarItem(
+            icon: Icon(FIcons.user),
+            label: Text('我的'),
           ),
         ],
+      ),
+      child: IndexedStack(
+        index: _currentIndex,
+        children: _pages,
       ),
     );
   }
