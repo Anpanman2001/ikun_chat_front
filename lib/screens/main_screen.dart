@@ -35,30 +35,33 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return FScaffold(
-      footer: FBottomNavigationBar(
-        index: _currentIndex,
-        onChange: (index) {
-          setState(() => _currentIndex = index);
-        },
-        children: const [
-          FBottomNavigationBarItem(
-            icon: Icon(FIcons.messagesSquare),
-            label: Text('聊天'),
-          ),
-          FBottomNavigationBarItem(
-            icon: Icon(FIcons.gamepad2),
-            label: Text('游戏'),
-          ),
-          FBottomNavigationBarItem(
-            icon: Icon(FIcons.user),
-            label: Text('我的'),
-          ),
-        ],
-      ),
-      child: IndexedStack(
-        index: _currentIndex,
-        children: _pages,
+    return Scaffold(
+      resizeToAvoidBottomInset: false,
+      body: FScaffold(
+        footer: FBottomNavigationBar(
+          index: _currentIndex,
+          onChange: (index) {
+            setState(() => _currentIndex = index);
+          },
+          children: const [
+            FBottomNavigationBarItem(
+              icon: Icon(FIcons.messagesSquare),
+              label: Text('聊天'),
+            ),
+            FBottomNavigationBarItem(
+              icon: Icon(FIcons.gamepad2),
+              label: Text('游戏'),
+            ),
+            FBottomNavigationBarItem(
+              icon: Icon(FIcons.user),
+              label: Text('我的'),
+            ),
+          ],
+        ),
+        child: IndexedStack(
+          index: _currentIndex,
+          children: _pages,
+        ),
       ),
     );
   }

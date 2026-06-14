@@ -9,7 +9,6 @@ import 'package:socket_io_client/socket_io_client.dart' as io;
 import 'package:uuid/uuid.dart';
 import '../services/chat_service.dart';
 import '../services/auth_service.dart';
-import '../utils/lottie_helper.dart';
 
 class ChatScreen extends StatefulWidget {
   final String userId;
@@ -37,6 +36,7 @@ class _ChatScreenState extends State<ChatScreen> {
   Timer? _pollTimer;
   final _imagePicker = ImagePicker();
   bool _isUploading = false;
+  final TextEditingController _inputController = TextEditingController();
 
   @override
   void initState() {
@@ -193,7 +193,10 @@ class _ChatScreenState extends State<ChatScreen> {
 
   // ---- 发送文字消息 ----
   void _handleSendPressed(types.PartialText message) {
-    final text = message.text.trim();
+    _handleSend(message.text.trim());
+  }
+
+  void _handleSend(String text) {
     if (text.isEmpty) return;
 
     final tempId = _uuid.v4();
@@ -307,6 +310,7 @@ class _ChatScreenState extends State<ChatScreen> {
   void dispose() {
     _pollTimer?.cancel();
     _socket.dispose();
+    _inputController.dispose();
     super.dispose();
   }
 
@@ -315,58 +319,100 @@ class _ChatScreenState extends State<ChatScreen> {
     final theme = FTheme.of(context);
 
     if (!_initialized) {
-      return FScaffold(
-        child: LottieHelper.chatLoading(),
-      );
+      return const Center(child: FCircularProgress());
     }
 
-    return FScaffold(
-      header: FHeader.nested(
-        title: const Text('聊天室'),
-        titleAlignment: Alignment.center,
-        suffixes: [
-          FHeaderAction(
-            icon: Icon(
-              FIcons.circle,
-              size: 12,
-              color: _connected ? Colors.green : Colors.orange,
-            ),
-            onPress: () {},
-          ),
-        ],
-      ),
-      child: _errorMessage != null && _messages.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(FIcons.cloudOff,
-                      size: 64, color: theme.colors.mutedForeground),
-                  const SizedBox(height: 16),
-                  Text(_errorMessage!,
-                      style: TextStyle(
-                          color: theme.colors.mutedForeground)),
-                  const SizedBox(height: 16),
-                  FButton(
-                    onPress: () {
-                      setState(() => _errorMessage = null);
-                      _loadMessages();
-                      if (!_socket.connected) _socket.connect();
-                    },
-                    prefix: const Icon(FIcons.refreshCw),
-                    child: const Text('重试'),
-                  ),
-                ],
+    return Column(
+      children: [
+        FHeader.nested(
+          title: const Text('聊天室'),
+          titleAlignment: Alignment.center,
+          suffixes: [
+            FHeaderAction(
+              icon: Icon(
+                FIcons.circle,
+                size: 12,
+                color: _connected ? Colors.green : Colors.orange,
               ),
-            )
-          : Chat(
-              messages: _messages,
-              onSendPressed: _handleSendPressed,
-              onAttachmentPressed: _handleAttachmentPressed,
-              user: _currentUser,
-              showUserAvatars: true,
-              showUserNames: true,
+              onPress: () {},
             ),
+          ],
+        ),
+        Expanded(
+          child: _errorMessage != null && _messages.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(FIcons.cloudOff,
+                          size: 64,
+                          color: theme.colors.mutedForeground),
+                      const SizedBox(height: 16),
+                      Text(_errorMessage!,
+                          style: TextStyle(
+                              color: theme.colors.mutedForeground)),
+                      const SizedBox(height: 16),
+                      FButton(
+                        onPress: () {
+                          setState(() => _errorMessage = null);
+                          _loadMessages();
+                          if (!_socket.connected) _socket.connect();
+                        },
+                        prefix: const Icon(FIcons.refreshCw),
+                        child: const Text('重试'),
+                      ),
+                    ],
+                  ),
+                )
+              : Chat(
+                  messages: _messages,
+                  onSendPressed: _handleSendPressed,
+                  onAttachmentPressed: _handleAttachmentPressed,
+                  user: _currentUser,
+                  showUserAvatars: true,
+                  showUserNames: true,
+                  customBottomWidget: SizedBox(
+                    height: 50,
+                    child: Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.image_outlined),
+                          onPressed: _isUploading ? null : _handleAttachmentPressed,
+                        ),
+                        Expanded(
+                          child: TextField(
+                            controller: _inputController,
+                            maxLines: 1,
+                            minLines: 1,
+                            decoration: InputDecoration(
+                              hintText: '输入消息...',
+                              border: InputBorder.none,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+                            ),
+                            onSubmitted: (text) {
+                              if (text.trim().isNotEmpty) {
+                                _handleSend(text.trim());
+                                _inputController.clear();
+                              }
+                            },
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.send),
+                          onPressed: () {
+                            final text = _inputController.text.trim();
+                            if (text.isNotEmpty) {
+                              _handleSend(text);
+                              _inputController.clear();
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+        ),
+      ],
     );
   }
 }
