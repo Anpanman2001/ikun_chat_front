@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import '../utils/lottie_helper.dart';
 import 'register_screen.dart';
 import 'main_screen.dart';
 
@@ -10,18 +11,35 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends State<LoginScreen>
+    with SingleTickerProviderStateMixin {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
   bool _obscurePassword = true;
 
+  late final AnimationController _shakeController;
+
+  @override
+  void initState() {
+    super.initState();
+    _shakeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+  }
+
   @override
   void dispose() {
     _usernameController.dispose();
     _passwordController.dispose();
+    _shakeController.dispose();
     super.dispose();
+  }
+
+  void _triggerShake() {
+    _shakeController.forward(from: 0);
   }
 
   Future<void> _login() async {
@@ -47,17 +65,22 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result.errorMessage!),
-          backgroundColor: Colors.red.shade400,
-        ),
-      );
+      _triggerShake();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result.errorMessage!),
+            backgroundColor: Colors.red.shade400,
+          ),
+        );
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -69,13 +92,19 @@ class _LoginScreenState extends State<LoginScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Logo / 标题
-                  Icon(
-                    Icons.chat_bubble_rounded,
-                    size: 80,
-                    color: Theme.of(context).colorScheme.primary,
+                  // Logo Lottie 动画
+                  SizedBox(
+                    height: 120,
+                    child: LottieHelper.network(
+                      LottieHelper.chatBubble,
+                      placeholder: Icon(
+                        Icons.chat_bubble_rounded,
+                        size: 80,
+                        color: colorScheme.primary,
+                      ),
+                    ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 8),
                   Text(
                     'Chat App',
                     textAlign: TextAlign.center,
@@ -144,21 +173,29 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // 登录按钮
-                  SizedBox(
-                    height: 48,
-                    child: FilledButton(
-                      onPressed: _isLoading ? null : _login,
-                      child: _isLoading
-                          ? const SizedBox(
-                              width: 22,
-                              height: 22,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
+                  // 登录按钮（失败抖动）
+                  AnimatedBuilder(
+                    animation: _shakeController,
+                    builder: (context, child) {
+                      final offset =
+                          (_shakeController.value * 2 - 1) * 6 *
+                          (1 - _shakeController.value).abs();
+                      return Transform.translate(
+                        offset: Offset(0, offset.abs() > 1 ? 0 : 0),
+                        child: child,
+                      );
+                    },
+                    child: SizedBox(
+                      height: 48,
+                      child: FilledButton(
+                        onPressed: _isLoading ? null : _login,
+                        child: _isLoading
+                            ? LottieHelper.loadingIndicator(size: 28)
+                            : const Text(
+                                '登 录',
+                                style: TextStyle(fontSize: 16),
                               ),
-                            )
-                          : const Text('登 录', style: TextStyle(fontSize: 16)),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16),

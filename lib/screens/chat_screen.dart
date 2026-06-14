@@ -8,6 +8,7 @@ import 'package:socket_io_client/socket_io_client.dart' as io;
 import 'package:uuid/uuid.dart';
 import '../services/chat_service.dart';
 import '../services/auth_service.dart';
+import '../utils/lottie_helper.dart';
 
 class ChatScreen extends StatefulWidget {
   final String userId;
@@ -30,7 +31,7 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _initialized = false;
   bool _connected = false;
   String? _errorMessage;
-  final _uuid = const Uuid();
+  final _uuid = Uuid();
   final Set<String> _seenIds = {};
   Timer? _pollTimer;
   final _imagePicker = ImagePicker();
@@ -304,8 +305,8 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     if (!_initialized) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+      return Scaffold(
+        body: LottieHelper.chatLoading(),
       );
     }
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import '../utils/lottie_helper.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -8,7 +9,8 @@ class RegisterScreen extends StatefulWidget {
   State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _RegisterScreenState extends State<RegisterScreen> {
+class _RegisterScreenState extends State<RegisterScreen>
+    with SingleTickerProviderStateMixin {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
@@ -17,12 +19,28 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
 
+  late final AnimationController _shakeController;
+
+  @override
+  void initState() {
+    super.initState();
+    _shakeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+  }
+
   @override
   void dispose() {
     _usernameController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+    _shakeController.dispose();
     super.dispose();
+  }
+
+  void _triggerShake() {
+    _shakeController.forward(from: 0);
   }
 
   Future<void> _register() async {
@@ -39,7 +57,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     setState(() => _isLoading = false);
 
     if (result.isSuccess) {
-      // 注册成功，返回登录页
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -50,12 +67,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
         Navigator.of(context).pop();
       }
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result.errorMessage!),
-          backgroundColor: Colors.red.shade400,
-        ),
-      );
+      _triggerShake();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result.errorMessage!),
+            backgroundColor: Colors.red.shade400,
+          ),
+        );
+      }
     }
   }
 
@@ -75,10 +95,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Icon(
-                    Icons.person_add_rounded,
-                    size: 72,
-                    color: Theme.of(context).colorScheme.primary,
+                  // Lottie 动画
+                  SizedBox(
+                    height: 100,
+                    child: LottieHelper.network(
+                      LottieHelper.chatBubble,
+                      placeholder: Icon(
+                        Icons.person_add_rounded,
+                        size: 72,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 12),
                   Text(
@@ -183,21 +210,29 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // 注册按钮
-                  SizedBox(
-                    height: 48,
-                    child: FilledButton(
-                      onPressed: _isLoading ? null : _register,
-                      child: _isLoading
-                          ? const SizedBox(
-                              width: 22,
-                              height: 22,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
+                  // 注册按钮（失败抖动）
+                  AnimatedBuilder(
+                    animation: _shakeController,
+                    builder: (context, child) {
+                      final offset =
+                          (_shakeController.value * 2 - 1) * 6 *
+                          (1 - _shakeController.value).abs();
+                      return Transform.translate(
+                        offset: Offset(0, offset.abs() > 1 ? 0 : 0),
+                        child: child,
+                      );
+                    },
+                    child: SizedBox(
+                      height: 48,
+                      child: FilledButton(
+                        onPressed: _isLoading ? null : _register,
+                        child: _isLoading
+                            ? LottieHelper.loadingIndicator(size: 28)
+                            : const Text(
+                                '注 册',
+                                style: TextStyle(fontSize: 16),
                               ),
-                            )
-                          : const Text('注 册', style: TextStyle(fontSize: 16)),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 12),
