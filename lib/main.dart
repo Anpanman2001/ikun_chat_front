@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:forui/forui.dart';
 import 'services/auth_service.dart';
 import 'screens/login_screen.dart';
 import 'screens/main_screen.dart';
@@ -15,9 +16,10 @@ class ChatApp extends StatelessWidget {
     return MaterialApp(
       title: 'ikun',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
-        useMaterial3: true,
+      theme: ThemeData(useMaterial3: true),
+      builder: (context, child) => FTheme(
+        data: FThemes.blue.light.touch,
+        child: FToaster(child: child!),
       ),
       home: const SplashGate(),
     );
@@ -62,12 +64,12 @@ class _SplashGateState extends State<SplashGate> {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(
+    return const FScaffold(
+      child: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircularProgressIndicator(),
+            FCircularProgress(),
             SizedBox(height: 16),
             Text('加载中...'),
           ],

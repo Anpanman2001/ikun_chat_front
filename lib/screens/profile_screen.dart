@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:forui/forui.dart';
 import 'package:image_picker/image_picker.dart';
 import '../config.dart';
 import '../services/auth_service.dart';
@@ -64,38 +65,43 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   // ---- 修改昵称 ----
   Future<void> _editNickname() async {
-    final controller = TextEditingController(text: _profile?.nickname ?? '');
-    final result = await showDialog<String>(
+    final controller = TextEditingController(
+        text: _profile?.nickname ?? '');
+
+    final result = await showFDialog<String>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx, style, animation) => FDialog(
         title: const Text('修改昵称'),
-        content: TextField(
-          controller: controller,
+        body: FTextField(
+          control: FTextFieldControl.managed(controller: controller),
+          hint: '2-20 个字符',
           maxLength: 20,
-          decoration: const InputDecoration(
-            hintText: '2-20 个字符',
-            border: OutlineInputBorder(),
-          ),
           autofocus: true,
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
+          FButton(
+            variant: FButtonVariant.ghost,
+            onPress: () => Navigator.of(ctx).pop(),
             child: const Text('取消'),
           ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(controller.text.trim()),
+          FButton(
+            onPress: () =>
+                Navigator.of(ctx).pop(controller.text.trim()),
             child: const Text('确定'),
           ),
         ],
       ),
     );
 
+    controller.dispose();
+
     if (result == null || result.isEmpty || !mounted) return;
     if (result.length < 2 || result.length > 20) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('昵称长度需在 2-20 个字符之间')),
+        showFToast(
+          context: context,
+          variant: FToastVariant.destructive,
+          title: const Text('昵称长度需在 2-20 个字符之间'),
         );
       }
       return;
@@ -113,14 +119,17 @@ class _ProfileScreenState extends State<ProfileScreen>
         );
       });
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('昵称修改成功'), backgroundColor: Colors.green),
+        showFToast(
+          context: context,
+          title: const Text('昵称修改成功'),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('修改失败: $e'), backgroundColor: Colors.red),
+        showFToast(
+          context: context,
+          variant: FToastVariant.destructive,
+          title: Text('修改失败: $e'),
         );
       }
     }
@@ -146,7 +155,8 @@ class _ProfileScreenState extends State<ProfileScreen>
             if (_profile?.avatarUrl != null)
               ListTile(
                 leading: const Icon(Icons.delete, color: Colors.red),
-                title: const Text('移除头像', style: TextStyle(color: Colors.red)),
+                title: const Text('移除头像',
+                    style: TextStyle(color: Colors.red)),
                 onTap: () => Navigator.of(ctx).pop(null),
               ),
           ],
@@ -180,8 +190,10 @@ class _ProfileScreenState extends State<ProfileScreen>
       debugPrint('[头像] 上传失败: $e');
       debugPrint('[头像] 堆栈: $stack');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('上传失败: $e'), backgroundColor: Colors.red),
+        showFToast(
+          context: context,
+          variant: FToastVariant.destructive,
+          title: Text('上传失败: $e'),
         );
       }
     }
@@ -200,17 +212,17 @@ class _ProfileScreenState extends State<ProfileScreen>
         );
       });
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('头像修改成功'),
-            backgroundColor: Colors.green,
-          ),
+        showFToast(
+          context: context,
+          title: const Text('头像修改成功'),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('修改失败: $e'), backgroundColor: Colors.red),
+        showFToast(
+          context: context,
+          variant: FToastVariant.destructive,
+          title: Text('修改失败: $e'),
         );
       }
     }
@@ -220,11 +232,11 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   // ---- 退出（带 Lottie 弹窗动画） ----
   Future<void> _handleLogout(BuildContext context) async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showFDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx, style, animation) => FDialog(
         title: const Text('退出登录'),
-        content: Column(
+        body: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             const Text('确定要退出登录吗？'),
@@ -233,18 +245,21 @@ class _ProfileScreenState extends State<ProfileScreen>
               height: 80,
               child: LottieHelper.network(
                 LottieHelper.exitDoor,
-                placeholder: const Icon(Icons.logout, size: 48, color: Colors.grey),
+                placeholder: Icon(FIcons.logOut,
+                    size: 48,
+                    color: FTheme.of(context).colors.mutedForeground),
               ),
             ),
           ],
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
+          FButton(
+            variant: FButtonVariant.ghost,
+            onPress: () => Navigator.of(ctx).pop(false),
             child: const Text('取消'),
           ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
+          FButton(
+            onPress: () => Navigator.of(ctx).pop(true),
             child: const Text('确定退出'),
           ),
         ],
@@ -267,29 +282,31 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final theme = FTheme.of(context);
 
-    return Scaffold(
-      appBar: AppBar(
+    return FScaffold(
+      header: FHeader.nested(
         title: const Text('我的'),
-        centerTitle: true,
+        titleAlignment: Alignment.center,
       ),
-      body: _loading
+      child: _loading
           ? Center(child: LottieHelper.loadingIndicator(size: 64))
           : _error != null
               ? Center(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(_error!, style: const TextStyle(color: Colors.grey)),
+                      Text(_error!,
+                          style: TextStyle(
+                              color: theme.colors.mutedForeground)),
                       const SizedBox(height: 16),
-                      ElevatedButton.icon(
-                        onPressed: () {
+                      FButton(
+                        onPress: () {
                           setState(() => _loading = true);
                           _loadProfile();
                         },
-                        icon: const Icon(Icons.refresh),
-                        label: const Text('重试'),
+                        prefix: const Icon(FIcons.refreshCw),
+                        child: const Text('重试'),
                       ),
                     ],
                   ),
@@ -300,7 +317,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                     padding: const EdgeInsets.symmetric(
                         horizontal: 32, vertical: 32),
                     children: [
-                      // 头像（点击旋转 + 编辑）
+                      // 头像（点击编辑）
                       GestureDetector(
                         onTap: _editAvatar,
                         child: Center(
@@ -312,36 +329,47 @@ class _ProfileScreenState extends State<ProfileScreen>
                                 animation: _avatarController,
                                 builder: (context, child) {
                                   final angle =
-                                      _avatarController.value * 2 * 3.14159;
+                                      _avatarController.value *
+                                          2 *
+                                          3.14159;
                                   return Transform.rotate(
                                     angle: angle,
                                     child: Transform.scale(
                                       scale: 1 +
-                                          (_avatarController.value <= 0.5
-                                                  ? _avatarController.value * 0.2
-                                                  : (1 - _avatarController.value) *
-                                                      0.2),
+                                          (_avatarController.value <=
+                                                  0.5
+                                              ? _avatarController
+                                                      .value *
+                                                  0.2
+                                              : (1 -
+                                                      _avatarController
+                                                          .value) *
+                                                  0.2),
                                       child: child,
                                     ),
                                   );
                                 },
-                                child: CircleAvatar(
-                                  radius: 52,
-                                  backgroundImage: _profile?.avatarUrl != null
-                                      ? NetworkImage(_profile!.avatarUrl!)
-                                      : null,
-                                  backgroundColor:
-                                      _profile?.avatarUrl != null
-                                          ? null
-                                          : colorScheme.primaryContainer,
-                                  child: _profile?.avatarUrl != null
-                                      ? null
-                                      : Icon(
-                                          Icons.person,
-                                          size: 52,
-                                          color: colorScheme.primary,
+                                child: _profile?.avatarUrl != null
+                                    ? FAvatar(
+                                        image: NetworkImage(
+                                            _profile!.avatarUrl!),
+                                        size: 104,
+                                      )
+                                    : FAvatar.raw(
+                                        size: 104,
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                            color:
+                                                theme.colors.secondary,
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: Icon(
+                                            FIcons.user,
+                                            size: 52,
+                                            color: theme.colors.primary,
+                                          ),
                                         ),
-                                ),
+                                      ),
                               ),
                               Positioned(
                                 bottom: 0,
@@ -349,11 +377,11 @@ class _ProfileScreenState extends State<ProfileScreen>
                                 child: Container(
                                   padding: const EdgeInsets.all(4),
                                   decoration: BoxDecoration(
-                                    color: colorScheme.primary,
+                                    color: theme.colors.primary,
                                     shape: BoxShape.circle,
                                   ),
                                   child: const Icon(
-                                    Icons.edit,
+                                    FIcons.pencil,
                                     size: 16,
                                     color: Colors.white,
                                   ),
@@ -367,10 +395,13 @@ class _ProfileScreenState extends State<ProfileScreen>
                       // 长按头像旋转
                       GestureDetector(
                         onLongPress: _spinAvatar,
-                        child: const Center(
+                        child: Center(
                           child: Text(
                             '点击修改头像，长按旋转',
-                            style: TextStyle(color: Colors.grey, fontSize: 12),
+                            style: TextStyle(
+                              color: theme.colors.mutedForeground,
+                              fontSize: 12,
+                            ),
                           ),
                         ),
                       ),
@@ -378,18 +409,18 @@ class _ProfileScreenState extends State<ProfileScreen>
 
                       // 昵称（点击修改）
                       _ProfileRow(
-                        icon: Icons.badge_outlined,
+                        icon: FIcons.idCard,
                         label: '昵称',
                         value: _profile?.nickname ?? '',
-                        trailing: const Icon(Icons.chevron_right,
-                            color: Colors.grey),
+                        trailing: Icon(FIcons.chevronRight,
+                            color: theme.colors.mutedForeground),
                         onTap: _editNickname,
                       ),
                       const Divider(height: 1),
 
                       // 账号（只读）
                       _ProfileRow(
-                        icon: Icons.person_outline,
+                        icon: FIcons.user,
                         label: '账号',
                         value: _profile?.username ?? widget.userName,
                       ),
@@ -399,17 +430,15 @@ class _ProfileScreenState extends State<ProfileScreen>
                       SizedBox(
                         width: double.infinity,
                         height: 48,
-                        child: OutlinedButton.icon(
-                          onPressed:
-                              _loggingOut ? null : () => _handleLogout(context),
-                          icon: const Icon(Icons.logout, color: Colors.red),
-                          label: Text(
+                        child: FButton(
+                          variant: FButtonVariant.destructive,
+                          onPress: _loggingOut
+                              ? null
+                              : () => _handleLogout(context),
+                          prefix: const Icon(FIcons.logOut),
+                          child: Text(
                             _loggingOut ? '退出中...' : '退出登录',
-                            style: const TextStyle(
-                                color: Colors.red, fontSize: 16),
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: Colors.red),
+                            style: const TextStyle(fontSize: 16),
                           ),
                         ),
                       ),
@@ -438,14 +467,16 @@ class _ProfileRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      leading: Icon(icon),
-      title:
-          Text(label, style: const TextStyle(color: Colors.grey, fontSize: 14)),
+    final theme = FTheme.of(context);
+
+    return FTile(
+      prefix: Icon(icon),
+      title: Text(label,
+          style: TextStyle(
+              color: theme.colors.mutedForeground, fontSize: 14)),
       subtitle: Text(value, style: const TextStyle(fontSize: 16)),
-      trailing: trailing,
-      onTap: onTap,
+      suffix: trailing,
+      onPress: onTap,
     );
   }
 }
-

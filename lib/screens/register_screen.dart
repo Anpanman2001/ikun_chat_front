@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:forui/forui.dart';
 import '../services/auth_service.dart';
 import '../utils/lottie_helper.dart';
 
@@ -14,10 +15,11 @@ class _RegisterScreenState extends State<RegisterScreen>
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
-  bool _obscurePassword = true;
-  bool _obscureConfirm = true;
+
+  String? _usernameError;
+  String? _passwordError;
+  String? _confirmError;
 
   late final AnimationController _shakeController;
 
@@ -43,8 +45,50 @@ class _RegisterScreenState extends State<RegisterScreen>
     _shakeController.forward(from: 0);
   }
 
+  bool _validate() {
+    bool valid = true;
+    setState(() {
+      final username = _usernameController.text.trim();
+
+      if (username.isEmpty) {
+        _usernameError = '请输入用户名';
+        valid = false;
+      } else if (username.length < 2) {
+        _usernameError = '用户名至少 2 个字符';
+        valid = false;
+      } else if (username.length > 32) {
+        _usernameError = '用户名最多 32 个字符';
+        valid = false;
+      } else {
+        _usernameError = null;
+      }
+
+      final password = _passwordController.text;
+      if (password.isEmpty) {
+        _passwordError = '请输入密码';
+        valid = false;
+      } else if (password.length < 6) {
+        _passwordError = '密码至少 6 位';
+        valid = false;
+      } else {
+        _passwordError = null;
+      }
+
+      if (_confirmPasswordController.text.isEmpty) {
+        _confirmError = '请再次输入密码';
+        valid = false;
+      } else if (_confirmPasswordController.text != password) {
+        _confirmError = '两次密码输入不一致';
+        valid = false;
+      } else {
+        _confirmError = null;
+      }
+    });
+    return valid;
+  }
+
   Future<void> _register() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_validate()) return;
 
     setState(() => _isLoading = true);
 
@@ -58,22 +102,19 @@ class _RegisterScreenState extends State<RegisterScreen>
 
     if (result.isSuccess) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('注册成功，请登录'),
-            backgroundColor: Colors.green,
-          ),
+        showFToast(
+          context: context,
+          title: const Text('注册成功，请登录'),
         );
         Navigator.of(context).pop();
       }
     } else {
       _triggerShake();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result.errorMessage!),
-            backgroundColor: Colors.red.shade400,
-          ),
+        showFToast(
+          context: context,
+          variant: FToastVariant.destructive,
+          title: Text(result.errorMessage!),
         );
       }
     }
@@ -81,175 +122,133 @@ class _RegisterScreenState extends State<RegisterScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
+    final theme = FTheme.of(context);
+
+    return FScaffold(
+      header: FHeader.nested(
         title: const Text('注册账号'),
+        titleAlignment: Alignment.center,
+        prefixes: [
+          FHeaderAction.back(
+            onPress: () => Navigator.of(context).pop(),
+          ),
+        ],
       ),
-      body: SafeArea(
+      child: SafeArea(
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 32),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Lottie 动画
-                  SizedBox(
-                    height: 100,
-                    child: LottieHelper.network(
-                      LottieHelper.chatBubble,
-                      placeholder: Icon(
-                        Icons.person_add_rounded,
-                        size: 72,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Lottie 动画
+                SizedBox(
+                  height: 100,
+                  child: LottieHelper.network(
+                    LottieHelper.chatBubble,
+                    placeholder: Icon(
+                      FIcons.userPlus,
+                      size: 72,
+                      color: theme.colors.primary,
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  Text(
-                    '创建新账号',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  '创建新账号',
+                  textAlign: TextAlign.center,
+                  style: theme.typography.xl2.copyWith(
+                    fontWeight: FontWeight.bold,
                   ),
-                  const SizedBox(height: 32),
+                ),
+                const SizedBox(height: 32),
 
-                  // 用户名
-                  TextFormField(
-                    controller: _usernameController,
-                    decoration: const InputDecoration(
-                      labelText: '用户名',
-                      hintText: '2-32 个字符',
-                      prefixIcon: Icon(Icons.person_outline),
-                      border: OutlineInputBorder(),
-                    ),
-                    textInputAction: TextInputAction.next,
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return '请输入用户名';
-                      }
-                      if (value.trim().length < 2) {
-                        return '用户名至少 2 个字符';
-                      }
-                      if (value.trim().length > 32) {
-                        return '用户名最多 32 个字符';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
+                // 用户名
+                FTextField(
+                  control: FTextFieldControl.managed(
+                      controller: _usernameController),
+                  label: const Text('用户名'),
+                  hint: '2-32 个字符',
+                  error: _usernameError != null
+                      ? Text(_usernameError!)
+                      : null,
+                  textInputAction: TextInputAction.next,
+                  prefixBuilder: (context, style, variants) =>
+                      const Icon(FIcons.user),
+                ),
+                const SizedBox(height: 16),
 
-                  // 密码
-                  TextFormField(
-                    controller: _passwordController,
-                    decoration: InputDecoration(
-                      labelText: '密码',
-                      hintText: '至少 6 位',
-                      prefixIcon: const Icon(Icons.lock_outline),
-                      border: const OutlineInputBorder(),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscurePassword
-                              ? Icons.visibility_off
-                              : Icons.visibility,
-                        ),
-                        onPressed: () {
-                          setState(
-                              () => _obscurePassword = !_obscurePassword);
-                        },
-                      ),
-                    ),
-                    obscureText: _obscurePassword,
-                    textInputAction: TextInputAction.next,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return '请输入密码';
-                      }
-                      if (value.length < 6) {
-                        return '密码至少 6 位';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
+                // 密码
+                FTextField.password(
+                  control: FTextFieldControl.managed(
+                      controller: _passwordController),
+                  label: const Text('密码'),
+                  hint: '至少 6 位',
+                  error: _passwordError != null
+                      ? Text(_passwordError!)
+                      : null,
+                  textInputAction: TextInputAction.next,
+                ),
+                const SizedBox(height: 16),
 
-                  // 确认密码
-                  TextFormField(
-                    controller: _confirmPasswordController,
-                    decoration: InputDecoration(
-                      labelText: '确认密码',
-                      prefixIcon: const Icon(Icons.lock_outline),
-                      border: const OutlineInputBorder(),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscureConfirm
-                              ? Icons.visibility_off
-                              : Icons.visibility,
-                        ),
-                        onPressed: () {
-                          setState(
-                              () => _obscureConfirm = !_obscureConfirm);
-                        },
-                      ),
-                    ),
-                    obscureText: _obscureConfirm,
-                    textInputAction: TextInputAction.done,
-                    onFieldSubmitted: (_) => _register(),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return '请再次输入密码';
-                      }
-                      if (value != _passwordController.text) {
-                        return '两次密码输入不一致';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 24),
+                // 确认密码
+                FTextField.password(
+                  control: FTextFieldControl.managed(
+                      controller: _confirmPasswordController),
+                  label: const Text('确认密码'),
+                  hint: '请再次输入密码',
+                  error: _confirmError != null
+                      ? Text(_confirmError!)
+                      : null,
+                  textInputAction: TextInputAction.done,
+                  onSubmit: (_) => _register(),
+                ),
+                const SizedBox(height: 24),
 
-                  // 注册按钮（失败抖动）
-                  AnimatedBuilder(
-                    animation: _shakeController,
-                    builder: (context, child) {
-                      final offset =
-                          (_shakeController.value * 2 - 1) * 6 *
-                          (1 - _shakeController.value).abs();
-                      return Transform.translate(
-                        offset: Offset(0, offset.abs() > 1 ? 0 : 0),
-                        child: child,
-                      );
-                    },
-                    child: SizedBox(
-                      height: 48,
-                      child: FilledButton(
-                        onPressed: _isLoading ? null : _register,
-                        child: _isLoading
-                            ? LottieHelper.loadingIndicator(size: 28)
-                            : const Text(
-                                '注 册',
-                                style: TextStyle(fontSize: 16),
-                              ),
-                      ),
+                // 注册按钮（失败抖动）
+                AnimatedBuilder(
+                  animation: _shakeController,
+                  builder: (context, child) {
+                    final offset =
+                        (_shakeController.value * 2 - 1) *
+                            6 *
+                            (1 - _shakeController.value).abs();
+                    return Transform.translate(
+                      offset: Offset(offset, 0),
+                      child: child,
+                    );
+                  },
+                  child: SizedBox(
+                    height: 48,
+                    child: FButton(
+                      onPress: _isLoading ? null : _register,
+                      size: FButtonSizeVariant.lg,
+                      child: _isLoading
+                          ? LottieHelper.loadingIndicator(size: 28)
+                          : const Text('注 册',
+                              style: TextStyle(fontSize: 16)),
                     ),
                   ),
-                  const SizedBox(height: 12),
+                ),
+                const SizedBox(height: 12),
 
-                  // 返回登录
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text('已有账号？'),
-                      TextButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        child: const Text('返回登录'),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                // 返回登录
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      '已有账号？',
+                      style: TextStyle(color: theme.colors.mutedForeground),
+                    ),
+                    FButton(
+                      variant: FButtonVariant.ghost,
+                      onPress: () => Navigator.of(context).pop(),
+                      child: const Text('返回登录'),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
         ),

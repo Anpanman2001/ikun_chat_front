@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:forui/forui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/chat_service.dart';
 import '../services/game_audio.dart';
@@ -208,12 +209,14 @@ class _GameScreenState extends State<GameScreen>
   // ---- 弹窗 ----
 
   void _showGameOverDialog() {
-    showDialog(
+    final theme = FTheme.of(context);
+
+    showFDialog(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        title: const Center(child: Text('游戏结束！')),
-        content: Column(
+      builder: (ctx, style, animation) => FDialog(
+        title: const Text('游戏结束！'),
+        body: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             // 奖杯 Lottie 动画
@@ -221,36 +224,39 @@ class _GameScreenState extends State<GameScreen>
               height: 100,
               child: LottieHelper.network(
                 LottieHelper.trophy,
-                placeholder: const Icon(
-                  Icons.emoji_events,
+                placeholder: Icon(
+                  FIcons.trophy,
                   size: 64,
-                  color: Colors.amber,
+                  color: const Color(0xFFFFC107),
                 ),
               ),
             ),
             const SizedBox(height: 8),
             Text(
               '本次得分：$_score',
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                  fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
               '历史最高：$_bestScore',
-              style: const TextStyle(color: Colors.grey),
+              style: TextStyle(color: theme.colors.mutedForeground),
             ),
           ],
         ),
         actions: [
-          TextButton(
-            onPressed: _submitScore,
+          FButton(
+            variant: FButtonVariant.ghost,
+            onPress: _submitScore,
             child: const Text('提交分数'),
           ),
-          TextButton(
-            onPressed: _showLeaderboard,
+          FButton(
+            variant: FButtonVariant.ghost,
+            onPress: _showLeaderboard,
             child: const Text('查看排行榜'),
           ),
-          FilledButton(
-            onPressed: () {
+          FButton(
+            onPress: () {
               Navigator.of(ctx).pop();
               _startGame();
             },
@@ -265,26 +271,26 @@ class _GameScreenState extends State<GameScreen>
     try {
       await ChatService.submitScore(_score);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('分数提交成功！'),
-            backgroundColor: Colors.green,
-          ),
+        showFToast(
+          context: context,
+          title: const Text('分数提交成功！'),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('提交失败: $e'), backgroundColor: Colors.red),
+        showFToast(
+          context: context,
+          variant: FToastVariant.destructive,
+          title: Text('提交失败: $e'),
         );
       }
     }
   }
 
-  Future<void> _showLeaderboard() async {
-    showDialog(
+  void _showLeaderboard() {
+    showFDialog(
       context: context,
-      builder: (ctx) => const LeaderboardDialog(),
+      builder: (ctx, style, animation) => const LeaderboardDialog(),
     );
   }
 
@@ -292,14 +298,14 @@ class _GameScreenState extends State<GameScreen>
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final theme = FTheme.of(context);
 
-    return Scaffold(
-      appBar: AppBar(
+    return FScaffold(
+      header: FHeader.nested(
         title: const Text('打地鼠'),
-        centerTitle: true,
+        titleAlignment: Alignment.center,
       ),
-      body: SafeArea(
+      child: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Stack(
@@ -331,19 +337,41 @@ class _GameScreenState extends State<GameScreen>
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w600,
-                          color: _timeLeft <= 10 ? Colors.red : null,
+                          color: _timeLeft <= 10
+                              ? theme.colors.destructive
+                              : null,
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 8),
+                  // 进度条
                   ClipRRect(
                     borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      value: _timeLeft / _totalTime,
-                      minHeight: 6,
-                      backgroundColor: colorScheme.surfaceContainerHighest,
-                      color: _timeLeft > 10 ? colorScheme.primary : Colors.red,
+                    child: SizedBox(
+                      height: 6,
+                      child: Stack(
+                        children: [
+                          Container(
+                            decoration: BoxDecoration(
+                              color: theme.colors.muted,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          ),
+                          FractionallySizedBox(
+                            alignment: Alignment.centerLeft,
+                            widthFactor: _timeLeft / _totalTime,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: _timeLeft > 10
+                                    ? theme.colors.primary
+                                    : theme.colors.destructive,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(height: 24),
@@ -367,19 +395,17 @@ class _GameScreenState extends State<GameScreen>
                   if (!_playing) ...[
                     Text(
                       '最高分: $_bestScore',
-                      style: const TextStyle(color: Colors.grey),
+                      style: TextStyle(color: theme.colors.mutedForeground),
                     ),
                     const SizedBox(height: 12),
                     SizedBox(
                       width: double.infinity,
-                      child: FilledButton.icon(
-                        onPressed: _startGame,
-                        icon: const Icon(Icons.play_arrow),
-                        label: const Text('开始游戏'),
-                        style: FilledButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          textStyle: const TextStyle(fontSize: 18),
-                        ),
+                      child: FButton(
+                        onPress: _startGame,
+                        size: FButtonSizeVariant.lg,
+                        prefix: const Icon(FIcons.play),
+                        child: const Text('开始游戏',
+                            style: TextStyle(fontSize: 18)),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -404,7 +430,7 @@ class _GameScreenState extends State<GameScreen>
                       ),
                       child: Text(
                         '+$_popupScore',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 36,
                           fontWeight: FontWeight.bold,
                           color: Colors.orange,
@@ -457,9 +483,10 @@ class _GameScreenState extends State<GameScreen>
   }
 
   Widget _buildHole() {
+    final theme = FTheme.of(context);
     return Container(
       decoration: BoxDecoration(
-        color: Colors.grey[300],
+        color: theme.colors.muted,
         shape: BoxShape.circle,
       ),
     );
@@ -475,7 +502,8 @@ class _GameScreenState extends State<GameScreen>
         color: state == 3 ? Colors.orange[300] : Colors.brown[400],
         shape: BoxShape.circle,
         boxShadow: const [
-          BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2)),
+          BoxShadow(
+              color: Colors.black26, blurRadius: 4, offset: Offset(0, 2)),
         ],
       ),
       child: Center(
@@ -500,31 +528,40 @@ class _GameScreenState extends State<GameScreen>
   // ---- 地鼠状态动画参数 ----
   double _moleSize(int state) {
     switch (state) {
-      case 1: return 1.15; // 冒出中弹性放大
-      case 2: return 1.0;  // 正常
-      case 3: return 0.7;  // 被打中缩小旋转
-      case 4: return 0.2;  // 缩回中变小
-      default: return 1.0;
+      case 1:
+        return 1.15; // 冒出中弹性放大
+      case 2:
+        return 1.0; // 正常
+      case 3:
+        return 0.7; // 被打中缩小旋转
+      case 4:
+        return 0.2; // 缩回中变小
+      default:
+        return 1.0;
     }
   }
 
   double _moleOpacity(int state) {
     switch (state) {
-      case 4: return 0.2;
-      default: return 1.0;
+      case 4:
+        return 0.2;
+      default:
+        return 1.0;
     }
   }
 
   double _moleAngle(int state) {
     switch (state) {
-      case 3: return 0.3;  // 被打微微倾斜
-      default: return 0;
+      case 3:
+        return 0.3; // 被打微微倾斜
+      default:
+        return 0;
     }
   }
 }
 
 // ================================================================
-//  排行榜弹窗（不变）
+//  排行榜弹窗
 // ================================================================
 
 class LeaderboardDialog extends StatefulWidget {
@@ -562,20 +599,25 @@ class _LeaderboardDialogState extends State<LeaderboardDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Center(child: Text('排行榜')),
-      content: SizedBox(
+    final theme = FTheme.of(context);
+
+    return FDialog(
+      title: const Text('排行榜'),
+      body: SizedBox(
         width: double.maxFinite,
         child: _loading
-            ? const Center(child: CircularProgressIndicator())
+            ? const Center(child: FCircularProgress())
             : _error != null
                 ? Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(_error!, style: const TextStyle(color: Colors.red)),
+                      Text(_error!,
+                          style:
+                              TextStyle(color: theme.colors.destructive)),
                       const SizedBox(height: 12),
-                      TextButton(
-                        onPressed: () {
+                      FButton(
+                        variant: FButtonVariant.ghost,
+                        onPress: () {
                           setState(() {
                             _loading = true;
                             _error = null;
@@ -602,15 +644,17 @@ class _LeaderboardDialogState extends State<LeaderboardDialog> {
                         const Divider(height: 24),
                         Text(
                           '我的排名：第${_myRank!['rank']}名  分数 ${_myRank!['score']}',
-                          style: const TextStyle(fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold),
                         ),
                       ],
                     ],
                   ),
       ),
       actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
+        FButton(
+          variant: FButtonVariant.ghost,
+          onPress: () => Navigator.of(context).pop(),
           child: const Text('关闭'),
         ),
       ],
@@ -637,7 +681,8 @@ class _LeaderboardDialogState extends State<LeaderboardDialog> {
             width: 36,
             child: Text(
               item.medalEmoji,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              style: const TextStyle(
+                  fontSize: 16, fontWeight: FontWeight.w600),
             ),
           ),
           Expanded(child: Text(item.nickname)),
