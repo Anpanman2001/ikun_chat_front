@@ -1,16 +1,13 @@
-# chatfront
+# 1. 启动后端
+cd D:\WorkSpace\Flutter\chat\chat-backend
+node src/server.js
 
-A new Flutter project.
+# 2. 启动 ngrok（固定域名，不会变）
+ngrok http --domain=sharpener-hydrated-mammogram.ngrok-free.dev 3000
 
-## Getting Started
+# 3. 启动前端（config.dart 不用改，直接 run）
+cd D:\WorkSpace\Flutter\chat\chat-front
+flutter run
 
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+# 4. 启动mysql
+sc query MySQL57
