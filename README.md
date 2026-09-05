@@ -13,4 +13,4 @@ flutter run
 sc query MySQL57
 
 # 5. TODO
-rules
+rules tests
